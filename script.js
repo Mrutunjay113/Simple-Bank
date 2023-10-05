@@ -82,20 +82,39 @@ const displayMovements = function (movements) {
         <div class="movements__type movements__type--${type}">${
       i + 1
     } ${type}</div>
-        <div class="movements__value">${mov}€</div>
+        <div class="movements__value">${mov} €</div>
       </div>
     `;
 
     containerMovements.insertAdjacentHTML('afterbegin', html);
   });
 };
-displayMovements(account1.movements);
 
-const calDisplayBalance = function (movements) {
-  const balance = movements.reduce((acc, mov) => mov + acc, 0);
-  labelBalance.textContent = `${balance} EUR`;
+const calDisplayBalance = function (acc) {
+  acc.balance = acc.movements.reduce((acc, mov) => mov + acc, 0);
+  labelBalance.textContent = `${acc.balance} €`;
 };
-calDisplayBalance(account1.movements);
+
+const calcDisplaySummary = function (acc) {
+  const income = acc.movements
+    .filter(mov => mov > 0)
+    .reduce((acc, mov) => acc + mov, 0);
+  labelSumIn.textContent = `${income} €`;
+  const out = movements
+    .filter(mov => mov < 0)
+    .reduce((acc, mov) => acc + mov, 0);
+  labelSumOut.textContent = `${Math.abs(out)} €`;
+
+  const interest = movements
+    .filter(mov => mov > 0)
+    .map(deposit => (deposit * acc.interestRate) / 100)
+    .filter((int, i, arr) => {
+      return int >= 1;
+    })
+    .reduce((acc, int) => acc + int, 0);
+  labelSumInterest.textContent = `${interest} €`;
+};
+
 const createUsernames = function (accs) {
   accs.forEach(acc => {
     acc.username = acc.owner
@@ -108,40 +127,82 @@ const createUsernames = function (accs) {
 
 createUsernames(accounts);
 
-// Coding Challenge #1
+const updateUI = function (acc) {
+  displayMovements(acc.movements);
+  //Display balance
+  calDisplayBalance(acc);
+  //Display summary
+  calcDisplaySummary(acc);
+};
 
-/* 
-Julia and Kate are doing a study on dogs. So each of them asked 5 dog owners about their dog's age, and stored the data into an array (one array for each). For now, they are just interested in knowing whether a dog is an adult or a puppy. A dog is an adult if it is at least 3 years old, and it's a puppy if it's less than 3 years old.
+let currentAccount;
+//Event Handleer
+btnLogin.addEventListener('click', function (e) {
+  e.preventDefault();
+  currentAccount = accounts.find(
+    acc => acc.username === inputLoginUsername.value
+  );
 
-Create a function 'checkDogs', which accepts 2 arrays of dog's ages ('dogsJulia' and 'dogsKate'), and does the following things:
+  console.log(currentAccount);
+  if (currentAccount?.pin === Number(inputLoginPin.value)) {
+    //Display UI and message
+    labelWelcome.textContent = `Welcome back, ${
+      currentAccount.owner.split(' ')[0]
+    }`;
+    containerApp.style.opacity = 100;
 
-1. Julia found out that the owners of the FIRST and the LAST TWO dogs actually have cats, not dogs! So create a shallow copy of Julia's array, and remove the cat ages from that copied array (because it's a bad practice to mutate function parameters)
-2. Create an array with both Julia's (corrected) and Kate's data
-3. For each remaining dog, log to the console whether it's an adult ("Dog number 1 is an adult, and is 5 years old") or a puppy ("Dog number 2 is still a puppy 🐶")
-4. Run the function for both test datasets
+    //clear input fields
+    inputLoginUsername.value = inputLoginPin.value = '';
+    inputLoginPin.blur();
 
-HINT: Use tools from all lectures in this section so far 😉
+    // //Display UI and message
+    updateUI(currentAccount);
+    console.log('login');
+  } else {
+    console.log('wrong');
+  }
+});
 
-TEST DATA 1: Julia's data [3, 5, 2, 12, 7], Kate's data [4, 1, 15, 8, 3]
-TEST DATA 2: Julia's data [9, 16, 6, 8, 3], Kate's data [10, 5, 6, 1, 4]
+btnTransfer.addEventListener('click', function (e) {
+  e.preventDefault();
+  const amount = Number(inputTransferAmount.value);
+  const receiverAcc = accounts.find(
+    acc => acc.username === inputTransferTo.value
+  );
 
-GOOD LUCK 😀
-*/
-// function checkDogs(dogsJulia, dogsKate) {
-//   const dogsJuliaCorrected = dogsJulia.slice();
-//   dogsJuliaCorrected.splice(0, 1);
-//   dogsJuliaCorrected.splice(-2);
+  inputTransferAmount.value = inputTransferTo.value = '';
+  if (
+    amount > 0 &&
+    receiverAcc &&
+    currentAccount.balance >= amount &&
+    receiverAcc?.username !== currentAccount.username
+  ) {
+    currentAccount.movements.push(-amount);
+    receiverAcc.movements.push(amount);
+    //Display UI and message
+    updateUI(currentAccount);
+    console.log('tranfered valid');
+  }
+});
 
-//   const dogs = dogsJuliaCorrected.concat(dogsKate);
-//   dogs.forEach(function (dog, i) {
-//     if (dog >= 3) {
-//       console.log(`Dog number ${i + 1} is an adult, and is ${dog} years old`);
-//     } else {
-//       console.log(`Dog number ${i + 1} is still a puppy 🐶`);
-//     }
-//   });
-// }
-// checkDogs([3, 5, 2, 12, 7], [4, 1, 15, 8, 3]);
+btnClose.addEventListener('click', function (e) {
+  e.preventDefault();
+  if (
+    inputCloseUsername.value === currentAccount.username &&
+    Number(inputClosePin.value) === currentAccount.pin
+  ) {
+    const index = accounts.findIndex(
+      acc => acc.username === currentAccount.username
+    );
+
+    //delete account
+    accounts.splice(index, 1);
+    containerApp.style.opacity = 0;
+  } else {
+    console.log('wrong username or pin');
+  }
+});
+
 const movements = [200, 450, -400, 3000, -650, -130, 70, 1300];
 const eruToUsd = 1.1;
 const movementsUSD = movements.map(mov => mov * eruToUsd);
@@ -169,4 +230,24 @@ const withdrawals = movements.filter(mov => {
 const balance = movements.reduce((acc, curr) => {
   return acc + curr;
 }, 0);
-console.log(balance);
+// console.log(balance);
+
+const max = movements.reduce((acc, mov) => {
+  if (acc > mov) return acc;
+  else return mov;
+}, movements[0]);
+// console.log(max);
+
+//PIPELINE
+const totalDepositsUSD = movements
+  .filter(mov => mov > 0)
+  .map(mov => mov * eruToUsd)
+  .reduce((acc, mov) => acc + mov, 0);
+console.log(totalDepositsUSD);
+
+const firstWithdrawal = movements.find(mov => mov < 0);
+console.log(firstWithdrawal);
+
+console.log(accounts);
+const account = accounts.find(acc => acc.owner === 'Jessica Davis');
+console.log(account);
