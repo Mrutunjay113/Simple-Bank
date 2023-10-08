@@ -72,9 +72,12 @@ const currencies = new Map([
 ]);
 
 /////////////////////////////////////////////////
-const displayMovements = function (movements) {
+const displayMovements = function (movements, sort = false) {
   containerMovements.innerHTML = '';
-  movements.forEach(function (mov, i) {
+
+  const movs = sort ? movements.slice().sort((a, b) => a - b) : movements;
+
+  movs.forEach(function (mov, i) {
     const type = mov > 0 ? 'deposit' : 'withdrawal';
 
     const html = `
@@ -185,6 +188,19 @@ btnTransfer.addEventListener('click', function (e) {
   }
 });
 
+//LOAN
+btnLoan.addEventListener('click', function (e) {
+  e.preventDefault();
+  const amount = Number(inputLoanAmount.value);
+
+  if (amount > 0 && currentAccount.movements.some(mov => mov >= amount * 0.1)) {
+    //add movement
+    currentAccount.movements.push(amount);
+    updateUI(currentAccount);
+  }
+  inputLoanAmount.value = '';
+});
+
 btnClose.addEventListener('click', function (e) {
   e.preventDefault();
   if (
@@ -202,6 +218,16 @@ btnClose.addEventListener('click', function (e) {
     console.log('wrong username or pin');
   }
 });
+
+let sorted = false;
+
+btnSort.addEventListener('click', function (e) {
+  e.preventDefault();
+  displayMovements(currentAccount.movements, !sorted);
+  sorted = !sorted;
+});
+
+/////////////////////
 
 const movements = [200, 450, -400, 3000, -650, -130, 70, 1300];
 const eruToUsd = 1.1;
@@ -243,11 +269,76 @@ const totalDepositsUSD = movements
   .filter(mov => mov > 0)
   .map(mov => mov * eruToUsd)
   .reduce((acc, mov) => acc + mov, 0);
-console.log(totalDepositsUSD);
+// console.log(totalDepositsUSD);
 
 const firstWithdrawal = movements.find(mov => mov < 0);
-console.log(firstWithdrawal);
+// console.log(firstWithdrawal);
 
 console.log(accounts);
 const account = accounts.find(acc => acc.owner === 'Jessica Davis');
-console.log(account);
+// console.log(account);
+
+//some
+const anyDepo = movements.some(mov => mov > 0);
+console.log(anyDepo);
+
+//every
+console.log(account4.movements.every(mov => mov > 0));
+
+//flat and flatMap
+
+const arr = [[1, 2, 3], [4, 5, 6], 7, 8];
+// console.log(arr.flat());
+
+const arrDeep = [[[1, 2], 3], [4, [5, 6]], 7, 8];
+// console.log(arrDeep.flat());
+
+// const accountMovements = accounts.map(acc => acc.movements);
+// console.log(accountMovements);
+
+// const allMovements = accountMovements.flat();
+// console.log(allMovements);
+
+// const overalBalance = allMovements.reduce((acc, mov) => acc + mov, 0);
+// console.log(overalBalance);
+
+const overalBalance1 = accounts
+  .map(acc => acc.movements)
+  .flat()
+  .reduce((acc, mov) => acc + mov, 0);
+// console.log(overalBalance1);
+
+///Flat Map
+const overalBalance2 = accounts
+  .flatMap(acc => acc.movements)
+  .reduce((acc, mov) => acc + mov, 0);
+
+// console.log(overalBalance2);
+
+//String
+const owners = ['Jonas', 'Zach', 'Adam', 'Martha'];
+console.log(owners.sort());
+
+//Number
+console.log(movements.sort());
+
+// return < 0, A,B
+// return > 0 , B,A
+
+//Ascending
+const sortAsc = movements.sort((a, b) => {
+  if (a > b) return 1;
+  if (b > a) return -1;
+});
+
+//
+//Descending
+const sortDes = movements.sort((a, b) => {
+  if (a > b) return -1;
+  if (b > a) return 1;
+});
+
+//Createing and filling arrays
+
+const x = new Array(7);
+// console.log(x);
